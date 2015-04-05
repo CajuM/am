@@ -8,30 +8,45 @@
 #include <sys/select.h>
 #include <pulse/simple.h>
 #include <pulse/error.h>
+#include <getopt.h>
 
-#define PI (3.141592653589793)
-#define SAMPLE_RATE (48000)
-#define PULSATION (2*PI*15000)
+#define PI 3.141592653589793
+#define SAMPLE_RATE 48000
+#define FREQUENCY 15000
+#define FREQUENCY_DELTA 750
+#define PULSATION (2*PI*FREQUENCY)
+#define PULSATION_DELTA (2*PI*FREQUENCY_DELTA)
 #define WAV_AMPL 2000000000
 
-#define SAMPLE_BUFFER (43)
-#define FRAME_SIZE (64)
+#define SAMPLE_BUFFER 48
+#define FRAME_SIZE 64
 #define EF_SIZE (FRAME_SIZE * 7 /4 )
-#define BITS_BYTE (8)
+#define BITS_BYTE 8
 #define BIT_SIZE (SAMPLE_BUFFER * 2)
 #define FRAME_BUFFER (EF_SIZE * BITS_BYTE * BIT_SIZE)
 #define PING_STR "Hristos se naste, bucurie lumii !"
 
-int *sbf;
-void write_wav(FILE* wav_file, unsigned long num_samples, int * data);
-int *get_fdata(char * data, size_t len);
-const char *byte_to_binary(int x);
-struct frame *get_msg(int *sbf);
-struct frame {
+typedef enum {
+	AM,
+	FM
+} modulation;
+
+typedef struct {
 	char start[2];
 	char data[FRAME_SIZE - 3];
 	uint8_t crc;
-};
+} frame;
+
+int *sbf;
+void write_wav(FILE* wav_file, unsigned long num_samples, int * data);
+int *get_fdata(char * data, size_t len, modulation m);
+int *modulate_am(char *data);
+int *modulate_fm(char *data);
+const char *byte_to_binary(int x);
+frame *get_msg(int *sbf, modulation m);
+frame *get_msg_am(int *sbf);
+frame *get_msg_fm(int *sbf);
+
 
 char get_bit(char byte, uint8_t poz) {
 	return (byte >> (8 - poz)) & (char) 0x01;
@@ -129,24 +144,42 @@ static void filter_frq(int *sample, int len) {
 	}
 }
 
-int *modulate(char *data) {
+int *modulate_fm(char *data) {
+	int i, j, k;
+	int index;
+	uintmax_t suma = 0;
+	int * vbuf = malloc(sizeof(int) * FRAME_BUFFER);
+	for (i = 0; i < EF_SIZE; i++)
+		for (j = 0; j < BITS_BYTE; j++)
+			for (k = 0; k < BIT_SIZE; k++) {
+				suma += get_bit(data[i], j + 1);
+				index = i * BITS_BYTE * BIT_SIZE + j * BIT_SIZE + k;
+				vbuf[index] = WAV_AMPL * sin(
+								((double)(PULSATION * index + PULSATION_DELTA * suma))
+								/ SAMPLE_RATE
+							);
+			}
+	return vbuf;
+}
+
+int *modulate_am(char *data) {
 	int i, j, k;
 	int * vbuf = malloc(sizeof(int) * FRAME_BUFFER);
 	for (i = 0; i < EF_SIZE; i++)
 		for (j = 0; j < BITS_BYTE; j++)
 			for (k = 0; k < BIT_SIZE; k++) {
-				vbuf[(i * BITS_BYTE * BIT_SIZE + j * BIT_SIZE + k)] = ((data[i]
-						& (1 << (7 - j))) >> (7 - j)) * WAV_AMPL
+				long index = i * BITS_BYTE * BIT_SIZE + j * BIT_SIZE + k;
+				vbuf[index] =
+						get_bit(data[i], (j + 1)) * WAV_AMPL
 						* sin(
-								((float) (i * BITS_BYTE * 2 * BIT_SIZE
-										+ j * BIT_SIZE + k)
-										/ (float) SAMPLE_RATE) * PULSATION);
+							((double) index * PULSATION) / ((double) SAMPLE_RATE)
+						);
 			}
 	return vbuf;
 }
 
-struct frame *encapsulate(char * data, size_t len) {
-	struct frame *frm = calloc(sizeof(char), sizeof(struct frame));
+frame *encapsulate(char * data, size_t len) {
+	frame *frm = calloc(sizeof(char), sizeof(frame));
 	frm->start[0] = 0xBE;
 	frm->start[1] = 0xEF;
 	memcpy(frm->data, data, (len < (FRAME_SIZE - 3)) ? len : (FRAME_SIZE - 3));
@@ -154,10 +187,18 @@ struct frame *encapsulate(char * data, size_t len) {
 	return frm;
 }
 
-int *get_fdata(char * data, size_t len) {
-	struct frame *frm = encapsulate(data, len);
+int *get_fdata(char * data, size_t len, modulation m) {
+	frame *frm = encapsulate(data, len);
 	char *enc = hm_encode((char *) frm, FRAME_SIZE);
-	int * vbuf = modulate(enc);
+	int * vbuf;
+	switch (m) {
+		case AM:
+			vbuf = modulate_am(enc);
+			break;
+		case FM:
+			vbuf = modulate_fm(enc);
+			break;
+	}
 	free(enc);
 	free(frm);
 	return vbuf;
@@ -179,7 +220,7 @@ pa_simple *get_ch() {
 			NULL, // Use default channel map
 			NULL, // Use default buffering attributes.
 			&err // Ignore error code.
-			);
+	);
 	if (!s)
 		printf("error: %s\n", pa_strerror(err));
 	return s;
@@ -201,7 +242,7 @@ pa_simple *get_pl() {
 			NULL, // Use default channel map
 			NULL, // Use default buffering attributes.
 			&err // Ignore error code.
-			);
+	);
 	if (!s)
 		printf("error: %s\n", pa_strerror(err));
 	return s;
@@ -223,7 +264,7 @@ int mmcmp(void *s1, void *s2, int len) {
 	return len;
 }
 
-int chk_frm(struct frame *frm) {
+int chk_frm(frame *frm) {
 	if (frm->start[0] != (char) 0xBE)
 		return 0;
 	if (frm->start[1] != (char) 0xEF)
@@ -233,10 +274,10 @@ int chk_frm(struct frame *frm) {
 	return 1;
 }
 
-int chk_wav_data(int *vbuf) {
+int chk_wav_data(int *vbuf, frame **frm, modulation m) {
 	filter_frq(vbuf, FRAME_BUFFER);
-	struct frame *frm = get_msg(vbuf);
-	return chk_frm(frm);
+	*frm = get_msg(vbuf, m);
+	return chk_frm(*frm);
 }
 
 void flushfb() {
@@ -245,7 +286,41 @@ void flushfb() {
 		sbf[i] = 0;
 }
 
-struct frame *get_msg(int *sbf) {
+frame *get_msg(int *sbf, modulation m) {
+	switch (m) {
+		case AM:
+			return get_msg_am(sbf);
+		case FM:
+			return get_msg_fm(sbf);
+	}
+}
+
+frame *get_msg_fm(int *sbf) {
+	char *msg = (char *) calloc(sizeof(char), EF_SIZE);
+	int i, j, k, index;
+	double freq;
+	int highcount;
+	char byte;
+	for (i = 0; i < EF_SIZE; i++) {
+		byte = 0;
+		for (j = 0; j < BITS_BYTE; j++) {
+			highcount = 0;
+			for (k = 0; k < (BIT_SIZE - 2); k++) {
+				index = i * BITS_BYTE * BIT_SIZE + j * BIT_SIZE + k;
+				if (( sbf[index]  < sbf[index + 1] ) && (sbf[index + 1] > sbf[index + 2]))
+					highcount++;
+				if (( sbf[index]  > sbf[index + 1] ) && (sbf[index + 1] < sbf[index + 2]))
+					highcount++;
+			}
+			freq = ((double) highcount) * SAMPLE_RATE / (BIT_SIZE * 2);
+			if (freq > FREQUENCY) {byte = flip_bit(byte, (j + 1)); /*printf("%d ", (int) freq);*/}
+		}
+		msg[i] = byte;
+	}
+	return (frame *) hm_decode(msg, EF_SIZE);
+}
+
+frame *get_msg_am(int *sbf) {
 	int i, j;
 	long long med;
 	long long base_ampl = 0;
@@ -257,7 +332,7 @@ struct frame *get_msg(int *sbf) {
 			j++;
 		}
 	if (j == 0)
-		return (struct frame *) hm_decode(msg, EF_SIZE);
+		return (frame *) hm_decode(msg, EF_SIZE);
 	base_ampl /= j;
 	base_ampl /= 2;
 
@@ -271,7 +346,7 @@ struct frame *get_msg(int *sbf) {
 			msg[i / BITS_BYTE] += 1 << (7 - (i % BITS_BYTE));
 		}
 	}
-	return (struct frame *) hm_decode(msg, EF_SIZE);
+	return (frame *) hm_decode(msg, EF_SIZE);
 }
 
 const char *byte_to_binary(int x) {
@@ -286,84 +361,128 @@ const char *byte_to_binary(int x) {
 	return b;
 }
 
-int main() {
-	int i, j;
-	char *mg = (char *) malloc(65536);
-	FILE *am = fopen("am.wav", "w");
-	if (am == NULL) {
-		printf("could not open files\n");
-		exit(1);
+int main(int argc, char **argv) {
+	modulation mod = AM;
+	int genwav = 0;
+	int test = 0;
+	int chat = 0;
+	static struct option long_options[] = {
+		{"modulation",  required_argument, 0, 'm'},
+		{"genwav",  no_argument,       0, 'g'},
+		{"test",  no_argument,       0, 't'},
+		{"chat",  no_argument,       0, 'c'},
+		{0, 0, 0, 0}
+	};
+	int c;
+	int option_index = 0;
+	do {
+		c = getopt_long (argc, argv, "m:gt",
+                       long_options, &option_index);
+		switch (c) {
+			case 0:
+				break;
+			case 'm':
+				if (strcmp(optarg, "AM") == 0) {
+					mod = AM;
+					break;
+				}
+			 	if (strcmp(optarg, "FM") == 0) {
+					mod = FM;
+					break;
+				}
+				fprintf(stderr, "Error: Invalid modulation\n");
+				return 1;
+			case 't':
+				test = 1;
+				break;
+			case 'g':
+				genwav = 1;
+				break;
+			case 'c':
+				chat = 1;
+				break;
+			case -1:
+				break;
+			default:
+				return 1;
+				break;
+		}
+	} while (c != -1);
+	if (!(test || chat || genwav)) {
+		fprintf(stderr, "Error: You must suply an action\n");
+		return 1;
 	}
 
-	/*
-	 char *rez = hm_encode(encapsulate(PING_STR, strlen(PING_STR)), FRAME_SIZE);
-	 for (i = 0; i< 14; i++) printf("%s", byte_to_binary(rez[i]));
-	 printf("\n");
-	 rez[0]=flip_bit(rez[0], 5);
-	 rez = hm_decode(rez, FRAME_SIZE*7/4);
-	 printf("%.64s\n", rez);
-	 if (!chk_frm(rez)) {
-	 for (i = 0; i < FRAME_SIZE; i++)
-	 printf("%hhx", ((char *)rez)[i]);
-	 printf("\n");
-	 }
-	 exit(0);*/
+
+	int *vbuf;
+	frame *msg;
+	int i;
+
+	if (genwav || test) {
+		vbuf = get_fdata(PING_STR, strlen(PING_STR), mod);
+		if (chk_wav_data(vbuf, &msg, mod))
+			printf("Info: PCM data is ok.\n");
+		else {
+			fprintf(stderr, "Error: PCM data can not be read\n");
+			for (i = 0; i < FRAME_SIZE; i++)
+				fprintf(stderr, "%hhx", ((char *) msg)[i]);
+			fprintf(stderr, "\n");
+		}
+	}
+	if (genwav) {
+		FILE *am = fopen("am.wav", "w");
+		if (am == NULL) {
+			printf("could not open files\n");
+			exit(1);
+		}
+		write_wav(am, FRAME_BUFFER, vbuf);
+		printf("Info: WAV ready\n");
+	}
+
+	if (!chat) return 0;
+
+	char *mg  = (char *) malloc(65536);
+	int j;
 	pa_simple *ch = get_ch();
 	pa_simple *pl = get_pl();
 	int err = 0;
-	struct frame *msg;
 	int *buf = (int *) malloc(sizeof(int) * SAMPLE_BUFFER);
 	sbf = (int *) calloc(sizeof(int), FRAME_BUFFER);
 	int *pbf;
-
 	fd_set set;
-	struct timeval timeout;
-	timeout.tv_sec = 1;
 	int rv;
+	struct timeval tv;
 
-	int *vbuf = get_fdata(PING_STR, strlen(PING_STR));
-	if (chk_wav_data(vbuf))
-		printf("WAV data is ok.\n");
-	else {
-		printf("WAV data can not be read\n");
-		msg = get_msg(vbuf);
-		for (i = 0; i < FRAME_SIZE; i++)
-			printf("%hhx", ((char *) msg)[i]);
-		printf("\n");
-	}
-	write_wav(am, FRAME_BUFFER, vbuf);
-	printf("WAV ready !\n");
-
-	printf("Initialization ok. Starting loop.\n");
+	printf("Info: Starting soundwave chat.\n");
 	while (1) {
 		if (pa_simple_read(ch, buf, sizeof(int) * SAMPLE_BUFFER, &err))
-			printf("error: %s\n", pa_strerror(err));
-		filter_frq(buf, SAMPLE_BUFFER);
-		mmpush(sbf, FRAME_BUFFER * sizeof(int), buf,
-		SAMPLE_BUFFER * sizeof(int));
-		msg = get_msg(sbf);
+			fprintf(stderr, "Error: %s\n", pa_strerror(err));
+		//filter_frq(buf, SAMPLE_BUFFER);
+		mmpush(sbf, FRAME_BUFFER * sizeof(int), buf, SAMPLE_BUFFER * sizeof(int));
+		msg = get_msg(sbf, mod);
 		if (chk_frm(msg)) {
-			fwrite(msg->data, 1, 61, stdout);
-			fflush(stdout);
+			printf("M: %.*s", 61, msg->data);
 			flushfb();
 		}
 		free(msg);
-
 		FD_ZERO(&set);
 		FD_SET(STDIN_FILENO, &set);
-		rv = select(STDIN_FILENO + 1, &set, NULL, NULL, &timeout);
+		tv.tv_sec = 0;
+		tv.tv_usec = 0;
+		rv = select(STDIN_FILENO + 1, &set, NULL, NULL, &tv);
 		if ((rv != 0) && (rv != -1)) {
 			rv = read(STDIN_FILENO, mg, 65536);
 			for (i = 0; i < rv; i += 61) {
 				j = ((i + 61) <= rv) ? 61 : (rv - i);
-				pbf = get_fdata(mg + i, j);
+				pbf = get_fdata(mg + i, j, mod);
 				if (pa_simple_write(pl, pbf, FRAME_BUFFER * sizeof(int), &err))
 					printf("error: %s\n", pa_strerror(err));
-				fflush(stdin);
-				fflush(stdout);
 				free(pbf);
 			}
 		}
+		fflush(stdin);
+		fflush(stdout);
+		fflush(stderr);
 	}
 	printf("\n");
 	pa_simple_free(ch);

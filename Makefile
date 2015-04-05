@@ -1,2 +1,2 @@
 all:
-	gcc -o am -lpulse-simple -lpulse -lm am.c wav.c crc8.c
+	gcc -o am am.c wav.c crc8.c -lpulse-simple -lpulse -lm
