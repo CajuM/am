@@ -10,15 +10,17 @@
 #include <pulse/error.h>
 #include <getopt.h>
 
+
+
 #define PI 3.141592653589793
 #define SAMPLE_RATE 48000
-#define FREQUENCY 15000
-#define FREQUENCY_DELTA 750
+#define FREQUENCY 12000
+#define FREQUENCY_DELTA 2000
 #define PULSATION (2*PI*FREQUENCY)
 #define PULSATION_DELTA (2*PI*FREQUENCY_DELTA)
 #define WAV_AMPL 2000000000
 
-#define SAMPLE_BUFFER 48
+#define SAMPLE_BUFFER 24
 #define FRAME_SIZE 64
 #define EF_SIZE (FRAME_SIZE * 7 /4 )
 #define BITS_BYTE 8
@@ -309,11 +311,12 @@ frame *get_msg_fm(int *sbf) {
 				index = i * BITS_BYTE * BIT_SIZE + j * BIT_SIZE + k;
 				if (( sbf[index]  < sbf[index + 1] ) && (sbf[index + 1] > sbf[index + 2]))
 					highcount++;
-				if (( sbf[index]  > sbf[index + 1] ) && (sbf[index + 1] < sbf[index + 2]))
-					highcount++;
+			//	if (( sbf[index]  > sbf[index + 1] ) && (sbf[index + 1] < sbf[index + 2]))
+			//		highcount++;
 			}
-			freq = ((double) highcount) * SAMPLE_RATE / (BIT_SIZE * 2);
-			if (freq > FREQUENCY) {byte = flip_bit(byte, (j + 1)); /*printf("%d ", (int) freq);*/}
+			//freq = ((double) highcount) * SAMPLE_RATE / (BIT_SIZE * 2);
+			freq = ((double) highcount) * SAMPLE_RATE / BIT_SIZE;
+			if (freq > (FREQUENCY /*+ FREQUENCY_DELTA / 8*/) ) {byte = flip_bit(byte, (j + 1)); /*printf("%d ", (int) freq);*/}
 		}
 		msg[i] = byte;
 	}
