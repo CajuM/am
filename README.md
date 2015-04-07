@@ -1,8 +1,15 @@
 amplitude modulation
 ====================
 
-A POC for intercomputer communication via sound waves.
-The program first tests that it's parameters work and generates a wav file in which is an encoded a message. Then it starts listening on the microphone for recieved messages. When a text is entered it modulates the signal end sends it through the sound speaker. The program uses crc8 for error detection and hamming encoding for error corection. It also works at an astounding speed of less than 64Bpsi, and at a distance under one meeter(using builtin laptop audio harware)
+A program that makes to computers chat using sound waves, it supports AM and FM, it can also test that it's internal parameters are theoreticaly sane(practicaly is another story).
+
+parameters
+----------
+
+--chat Starts listening for messages and input from the user
+--test Tests the internal parmaters
+--genwav Generates a wav file with an encoded string
+-m Either AM or FM Sets the modulation scheme, default AM
 
 prerequisites
 -------------
