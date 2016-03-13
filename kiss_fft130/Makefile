@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/mihai/git/am
+CMAKE_SOURCE_DIR = /home/mihai/git/am/kiss_fft130
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/mihai/git/am
+CMAKE_BINARY_DIR = /home/mihai/git/am/kiss_fft130
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -80,9 +80,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/mihai/git/am/CMakeFiles /home/mihai/git/am/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/mihai/git/am/kiss_fft130/CMakeFiles /home/mihai/git/am/kiss_fft130/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/mihai/git/am/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/mihai/git/am/kiss_fft130/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -111,19 +111,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named am
-
-# Build rule for target.
-am: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 am
-.PHONY : am
-
-# fast build rule for target.
-am/fast:
-	$(MAKE) -f CMakeFiles/am.dir/build.make CMakeFiles/am.dir/build
-.PHONY : am/fast
-
-#=============================================================================
 # Target rules for targets named kiss_fft
 
 # Build rule for target.
@@ -133,89 +120,62 @@ kiss_fft: cmake_check_build_system
 
 # fast build rule for target.
 kiss_fft/fast:
-	$(MAKE) -f kiss_fft130/CMakeFiles/kiss_fft.dir/build.make kiss_fft130/CMakeFiles/kiss_fft.dir/build
+	$(MAKE) -f CMakeFiles/kiss_fft.dir/build.make CMakeFiles/kiss_fft.dir/build
 .PHONY : kiss_fft/fast
 
-am.o: am.c.o
+kiss_fft.o: kiss_fft.c.o
 
-.PHONY : am.o
-
-# target to build an object file
-am.c.o:
-	$(MAKE) -f CMakeFiles/am.dir/build.make CMakeFiles/am.dir/am.c.o
-.PHONY : am.c.o
-
-am.i: am.c.i
-
-.PHONY : am.i
-
-# target to preprocess a source file
-am.c.i:
-	$(MAKE) -f CMakeFiles/am.dir/build.make CMakeFiles/am.dir/am.c.i
-.PHONY : am.c.i
-
-am.s: am.c.s
-
-.PHONY : am.s
-
-# target to generate assembly for a file
-am.c.s:
-	$(MAKE) -f CMakeFiles/am.dir/build.make CMakeFiles/am.dir/am.c.s
-.PHONY : am.c.s
-
-crc8.o: crc8.c.o
-
-.PHONY : crc8.o
+.PHONY : kiss_fft.o
 
 # target to build an object file
-crc8.c.o:
-	$(MAKE) -f CMakeFiles/am.dir/build.make CMakeFiles/am.dir/crc8.c.o
-.PHONY : crc8.c.o
+kiss_fft.c.o:
+	$(MAKE) -f CMakeFiles/kiss_fft.dir/build.make CMakeFiles/kiss_fft.dir/kiss_fft.c.o
+.PHONY : kiss_fft.c.o
 
-crc8.i: crc8.c.i
+kiss_fft.i: kiss_fft.c.i
 
-.PHONY : crc8.i
+.PHONY : kiss_fft.i
 
 # target to preprocess a source file
-crc8.c.i:
-	$(MAKE) -f CMakeFiles/am.dir/build.make CMakeFiles/am.dir/crc8.c.i
-.PHONY : crc8.c.i
+kiss_fft.c.i:
+	$(MAKE) -f CMakeFiles/kiss_fft.dir/build.make CMakeFiles/kiss_fft.dir/kiss_fft.c.i
+.PHONY : kiss_fft.c.i
 
-crc8.s: crc8.c.s
+kiss_fft.s: kiss_fft.c.s
 
-.PHONY : crc8.s
+.PHONY : kiss_fft.s
 
 # target to generate assembly for a file
-crc8.c.s:
-	$(MAKE) -f CMakeFiles/am.dir/build.make CMakeFiles/am.dir/crc8.c.s
-.PHONY : crc8.c.s
+kiss_fft.c.s:
+	$(MAKE) -f CMakeFiles/kiss_fft.dir/build.make CMakeFiles/kiss_fft.dir/kiss_fft.c.s
+.PHONY : kiss_fft.c.s
 
-wav.o: wav.c.o
+tools/kiss_fftr.o: tools/kiss_fftr.c.o
 
-.PHONY : wav.o
+.PHONY : tools/kiss_fftr.o
 
 # target to build an object file
-wav.c.o:
-	$(MAKE) -f CMakeFiles/am.dir/build.make CMakeFiles/am.dir/wav.c.o
-.PHONY : wav.c.o
+tools/kiss_fftr.c.o:
+	$(MAKE) -f CMakeFiles/kiss_fft.dir/build.make CMakeFiles/kiss_fft.dir/tools/kiss_fftr.c.o
+.PHONY : tools/kiss_fftr.c.o
 
-wav.i: wav.c.i
+tools/kiss_fftr.i: tools/kiss_fftr.c.i
 
-.PHONY : wav.i
+.PHONY : tools/kiss_fftr.i
 
 # target to preprocess a source file
-wav.c.i:
-	$(MAKE) -f CMakeFiles/am.dir/build.make CMakeFiles/am.dir/wav.c.i
-.PHONY : wav.c.i
+tools/kiss_fftr.c.i:
+	$(MAKE) -f CMakeFiles/kiss_fft.dir/build.make CMakeFiles/kiss_fft.dir/tools/kiss_fftr.c.i
+.PHONY : tools/kiss_fftr.c.i
 
-wav.s: wav.c.s
+tools/kiss_fftr.s: tools/kiss_fftr.c.s
 
-.PHONY : wav.s
+.PHONY : tools/kiss_fftr.s
 
 # target to generate assembly for a file
-wav.c.s:
-	$(MAKE) -f CMakeFiles/am.dir/build.make CMakeFiles/am.dir/wav.c.s
-.PHONY : wav.c.s
+tools/kiss_fftr.c.s:
+	$(MAKE) -f CMakeFiles/kiss_fft.dir/build.make CMakeFiles/kiss_fft.dir/tools/kiss_fftr.c.s
+.PHONY : tools/kiss_fftr.c.s
 
 # Help Target
 help:
@@ -225,17 +185,13 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... am"
 	@echo "... kiss_fft"
-	@echo "... am.o"
-	@echo "... am.i"
-	@echo "... am.s"
-	@echo "... crc8.o"
-	@echo "... crc8.i"
-	@echo "... crc8.s"
-	@echo "... wav.o"
-	@echo "... wav.i"
-	@echo "... wav.s"
+	@echo "... kiss_fft.o"
+	@echo "... kiss_fft.i"
+	@echo "... kiss_fft.s"
+	@echo "... tools/kiss_fftr.o"
+	@echo "... tools/kiss_fftr.i"
+	@echo "... tools/kiss_fftr.s"
 .PHONY : help
 
 
