@@ -66,6 +66,8 @@ void paWrite(void * iov, void * buf, uintmax_t len) {
 	int err;
 	if (pa_simple_write(pulse->player, buf, len, &err))
 		printf("error: %s\n", pa_strerror(err));
+    if (pa_simple_drain(pulse->player, &err) < 0)
+        fprintf(stderr, "Error: %s\n", pa_strerror(err));
 }
 
 void * initPulse(int sampleRate) {
@@ -73,6 +75,7 @@ void * initPulse(int sampleRate) {
 
 	ret->io.write = &paWrite;
 	ret->io.read = &paRead;
+
 	ret->player = get_pl(sampleRate);
 	ret->recorder = get_ch(sampleRate);
 
