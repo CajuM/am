@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 typedef struct {
-	void (* write) (void * io, int32_t * buf, uintmax_t len);
-	int32_t * (* read)(void * io, uintmax_t len);
+	void (* write) (void * io, void * buf, uintmax_t len);
+	void * (* read)(void * io, uintmax_t len);
 	void (* close) ();
 } Io;
 

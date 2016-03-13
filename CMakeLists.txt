@@ -8,6 +8,7 @@ set(SRC
 	io/pulse.c
 	encapsulation/enc1.c
 	modulation/am.c
+	modulation/amo.c
 	modulation/fm.c
 	filtering/goertzel.c
 	crc8.c

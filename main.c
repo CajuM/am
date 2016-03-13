@@ -11,6 +11,7 @@
 #include "enc1.h"
 #include "pulse.h"
 #include "encoding.h"
+#include "rt.h"
 
 #define PING_STR "Hristos se naste, bucurie lumii !"
 
@@ -42,11 +43,15 @@ static Stack * getStack(int argc, char ** argv) {
 			break;
 		case 'm':
 			if (strcmp(optarg, "AM") == 0) {
-				stack->mod = initAm(48000, INT_MAX / 2, 20000, 1000, 128);
+				stack->mod = initAm(48000, INT_MAX, 20000, 2000, 128);
 				break;
 			}
 			if (strcmp(optarg, "FM") == 0) {
-				stack->mod = initFm(48000, INT_MAX / 2, 20000, 1000, 128);
+				stack->mod = initFm(48000, INT_MAX, 20000, 1000, 64);
+				break;
+			}
+			if (strcmp(optarg, "AMO") == 0) {
+				stack->mod = initAmo(48000, INT_MAX, 12000, 100);
 				break;
 			}
 			fprintf(stderr, "Error: Invalid modulation\n");
@@ -75,58 +80,23 @@ static Stack * getStack(int argc, char ** argv) {
 	return stack;
 }
 
-/*
- int *modulate_am(char *data) {
- int i, j, k;
- int * vbuf = malloc(sizeof(int) * FRAME_BUFFER);
- for (i = 0; i < EF_SIZE; i++)
- for (j = 0; j < BITS_BYTE; j++) {
- int bit = get_bit(data[i], (j + 1));
- for (k = 0; k < BIT_SIZE; k++) {
- long index = i * BITS_BYTE * BIT_SIZE + j * BIT_SIZE + k;
- vbuf[index] =
- bit * WAV_AMPL * sin(
- ((double) index * PULSATION) / ((double) SAMPLE_RATE)
- );
- }
- }
- return vbuf;
- }
- */
-
-/*
- frame *get_msg_am(int *sbf) {
- double frq[] = {FREQUENCY};
- double base_pow = goertzel(sbf + BIT_SIZE * 1, BIT_SIZE , frq, 1)[0];
- base_pow /= 2;
- char *msg = (char *) calloc(sizeof(char), EF_SIZE);
-
- for (uintmax_t i = 0; i < FRAME_BUFFER / BIT_SIZE; i++) {
- double pow = goertzel(sbf + i * BIT_SIZE, BIT_SIZE, frq, 1)[0];
- //	printf("%lf %lf\n", base_pow, pow);
-
- if (pow > base_pow) {
- msg[i / BITS_BYTE] += 1 << (7 - (i % BITS_BYTE));
- }
- }
- return (frame *) hm_decode(msg, EF_SIZE);
- }
- */
-
 static void * listen(void * vstack) {
 	Stack * stack = vstack;
 	uintmax_t signalLen = stack->mod->oSize(stack->mod, stack->enc->frameSize);
+	int32_t * fbuf = calloc(signalLen, sizeof(int32_t));
 	while (1) {
-		int32_t * signal = stack->io->read(stack->io,
-				signalLen * sizeof(int32_t));
-		Frame frm = stack->mod->demodulate(stack->mod, signal, signalLen);
+		int32_t * sample = stack->io->read(stack->io,
+				stack->mod->sampleSize * sizeof(int32_t));
+		mmpush(fbuf, sizeof(int32_t) * signalLen, sample,
+				stack->mod->sampleSize * sizeof(int32_t));
+		Frame frm = stack->mod->demodulate(stack->mod, fbuf, signalLen);
 		if (stack->enc->check(stack->enc, frm)) {
-			char * data = stack->enc->decapsulate(stack->enc, frm);
-			printf("M: %.*s\n", stack->enc->dataSize, data);
+			uint8_t * data = stack->enc->decapsulate(stack->enc, frm);
+			printf("M: %s\n", data);
 			free(data);
 		}
 		free(frm);
-		free(signal);
+		free(sample);
 	}
 }
 
@@ -181,6 +151,8 @@ static int test(void * vstack) {
 			printf("%.2x", ((uint8_t *) frm)[i]);
 		}
 		printf("\n");
+	} else {
+		printf("Configuration OK !\n");
 	}
 	free(frm);
 	return ret;

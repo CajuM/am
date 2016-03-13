@@ -3,6 +3,8 @@
 
 #include "enc1.h"
 
+extern uint8_t crc8(const void *vptr, int len);
+
 Frame enc1Encapsulate(void * enc, uint8_t * data, uintmax_t len) {
 	Encapsulation * enc1 = enc;
 	Enc1Frame * frm = calloc(1, sizeof(Enc1Frame));
@@ -16,18 +18,20 @@ Frame enc1Encapsulate(void * enc, uint8_t * data, uintmax_t len) {
 int enc1Check(void * enc, Frame frm) {
 	Encapsulation * enc1 = enc;
 	Enc1Frame * fram = frm;
-	if (fram->start[0] != (char) 0xBE)
+	if (fram->start[0] != (uint8_t) 0xBE)
 		return 0;
-	if (fram->start[1] != (char) 0xEF)
+	if (fram->start[1] != (uint8_t) 0xEF)
 		return 0;
-	if (crc8(fram->data, enc1->frameSize - 3) != fram->crc)
+	if (crc8(fram->data, 61) != fram->crc)
 		return 0;
 	return 1;
 }
 
 uint8_t * enc1Decapsulate(void * enc, Frame frm) {
 	Enc1Frame * fram = frm;
-	return fram->data;
+	uint8_t * ret = malloc(sizeof(uint8_t) * 63);
+	memcpy(ret, fram->data, 63);
+	return ret;
 }
 
 void * initEnc1() {

@@ -17,4 +17,7 @@ typedef struct {
 	uintmax_t (* oSize) (void * v, uintmax_t len);
 } Modulation;
 
+void * initAmo(double sampleRate, double amplitude, double frequency,
+		uintmax_t sampleSize);
+
 #endif

@@ -1,5 +1,8 @@
 #include "rt.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 uint8_t get_bit(uint8_t byte, uint8_t poz) {
 	return (byte >> (8 - poz)) & (uint8_t) 0x01;
 }

@@ -28,7 +28,9 @@ void * initGoertzel(void * mod, double * frequencies, uintmax_t nrfq) {
 	Filter * ret = calloc(1, sizeof(Filter));
 
 	ret->modulation = mod;
-	ret->frequencies = frequencies;
+	ret->frequencies = malloc(sizeof(double) * nrfq);
+	for (uintmax_t i = 0; i < nrfq; i++)
+		ret->frequencies[i] = frequencies[i];
 	ret->frequenciesNr = nrfq;
 	ret->filter = &goertzel;
 

@@ -3,11 +3,11 @@
 
 #include "enc.h"
 
-typedef struct {
+typedef struct __attribute__ ((packed)) {
 	uint8_t start[2];
 	uint8_t data[61];
 	uint8_t crc;
-} Enc1Frame __attribute__ ((packed));
+} Enc1Frame;
 
 void * initEnc1();
 
