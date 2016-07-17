@@ -8,8 +8,8 @@ extern uint8_t crc8(const void *vptr, int len);
 Frame enc1Encapsulate(void * enc, uint8_t * data, uintmax_t len) {
 	Encapsulation * enc1 = enc;
 	Enc1Frame * frm = calloc(1, sizeof(Enc1Frame));
-	frm->start[0] = 0xBE;
-	frm->start[1] = 0xEF;
+	frm->start[0] = 0xFF;
+	frm->start[1] = 0x00;
 	memcpy(frm->data, data, (len < (enc1->frameSize - 3)) ? len : (enc1->frameSize - 3));
 	frm->crc = crc8(frm->data, enc1->frameSize - 3);
 	return frm;
@@ -18,9 +18,9 @@ Frame enc1Encapsulate(void * enc, uint8_t * data, uintmax_t len) {
 int enc1Check(void * enc, Frame frm) {
 	Encapsulation * enc1 = enc;
 	Enc1Frame * fram = frm;
-	if (fram->start[0] != (uint8_t) 0xBE)
+	if (fram->start[0] != (uint8_t) 0xFF)
 		return 0;
-	if (fram->start[1] != (uint8_t) 0xEF)
+	if (fram->start[1] != (uint8_t) 0x00)
 		return 0;
 	if (crc8(fram->data, 61) != fram->crc)
 		return 0;

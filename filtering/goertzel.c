@@ -10,8 +10,9 @@ double * goertzel(void * filter, int * buf, uintmax_t len) {
 	double * ret = malloc(sizeof(double) * flt->frequenciesNr);
 
 	for (uintmax_t i = 0; i < flt->frequenciesNr; i++) {
-		double omega = (2.0 * M_PI * flt->frequencies[i]) / mod->sampleRate;
-		double coeff = 2.0 * cos(omega);
+		int k = 0.5 + (len * flt->frequencies[i] / mod->sampleRate);
+		double omega = (2.0 * M_PI * k) / len;
+		double coeff = 2.0 *  cos(omega);
 
 		double Q1 = 0, Q2 = 0;
 		for (uintmax_t j = 0; j < len; j++) {

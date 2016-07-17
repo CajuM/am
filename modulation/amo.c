@@ -30,10 +30,13 @@ uint8_t * amoDemodulate(void * amv, int32_t *sbf, uintmax_t len) {
 	Modulation * mod = amv;
 	Filter * flt = mod->filter;
 	uintmax_t frameLen = len / (mod->sampleSize * U_BYTE);
-	double * bpow = flt->filter(flt, sbf + mod->sampleSize, mod->sampleSize);
-	double base_pow = bpow[0];
-	free(bpow);
-	base_pow /= 4;
+	double * bpow0 = flt->filter(flt, sbf + mod->sampleSize * 4, mod->sampleSize);
+	double base_pow0 = bpow0[0];
+	free(bpow0);
+	double * bpow1 = flt->filter(flt, sbf + mod->sampleSize * 12, mod->sampleSize);
+	double base_pow1 = bpow1[0];
+	free(bpow1);
+	double base_pow = (base_pow0 + base_pow1) / 2;
 	char *msg = (uint8_t *) calloc(1, sizeof(uint8_t) * frameLen);
 
 	for (uintmax_t i = 0; i < len / mod->sampleSize; i++) {

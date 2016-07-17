@@ -55,7 +55,7 @@ void * paRead(void * iov, uintmax_t len) {
 	int err;
 	void * buf = malloc(len);
 
-	if (pa_simple_read(pulse->recorder, buf, len, &err))
+	if (pa_simple_read(pulse->recorder, buf, len, &err) < 0)
 		fprintf(stderr, "Error: %s\n", pa_strerror(err));
 
 	return buf;
@@ -70,20 +70,24 @@ void paWrite(void * iov, void * buf, uintmax_t len) {
         fprintf(stderr, "Error: %s\n", pa_strerror(err));
 }
 
+
+
+void paClose(void * pav) {
+	Pulse * pa = pav;
+	pa_simple_free(pa->player);
+	pa_simple_free(pa->recorder);
+}
+
 void * initPulse(int sampleRate) {
 	Pulse * ret = calloc(1, sizeof(Pulse));
 
 	ret->io.write = &paWrite;
 	ret->io.read = &paRead;
+	ret->io.close = &paClose;
 
 	ret->player = get_pl(sampleRate);
 	ret->recorder = get_ch(sampleRate);
 
 
 	return ret;
-}
-
-void paClose(Pulse * pa) {
-	pa_simple_free(pa->player);
-	pa_simple_free(pa->recorder);
 }

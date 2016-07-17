@@ -14,4 +14,4 @@ parameters
 prerequisites
 -------------
 
-In order to compile the program you will need the pulseaduio development files.
+In order to compile the program you will need the pulseaduio development files and cmake.

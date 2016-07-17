@@ -6,7 +6,7 @@
 typedef struct {
 	void (* write) (void * io, void * buf, uintmax_t len);
 	void * (* read)(void * io, uintmax_t len);
-	void (* close) ();
+	void (* close) (void * io);
 } Io;
 
 #endif

@@ -38,10 +38,16 @@ uint8_t * amDemodulate(void * amv, int32_t * sbf, uintmax_t len) {
 	Modulation * mod = (void *) am;
 	uintmax_t frameLen = len / (mod->sampleSize * U_BYTE);
 	Filter * flt = ((Filter *) mod->filter);
-	double * bpow = flt->filter(flt, sbf + mod->sampleSize, mod->sampleSize);
-	double base_pow = bpow[1];
-	free(bpow);
-	base_pow /= 4;
+
+	double * bpowf = flt->filter(flt, sbf + mod->sampleSize * 2, mod->sampleSize);
+	double * bpow0 = flt->filter(flt, sbf + mod->sampleSize * 6, mod->sampleSize);
+
+	double base_pow0 = (bpowf[0] + bpow0[0]) / 3;
+	double base_pow1 = (bpowf[1] + bpow0[1]) / 1.7;
+
+	free(bpowf);
+	free(bpow0);
+
 	char *msg = (uint8_t *) calloc(1, sizeof(uint8_t) * frameLen);
 
 	for (uintmax_t i = 0; i < frameLen; i++) {
@@ -56,12 +62,12 @@ uint8_t * amDemodulate(void * amv, int32_t * sbf, uintmax_t len) {
 //			printf("%lf: %lf\n", base_pow, pow0);
 //			printf("%lf: %lf\n", base_pow, pow1);
 
-			if (pow0 >= base_pow) {
+			if (pow0 >= base_pow0) {
 				int idx0 = ubidx * 2;
 				int bidx0 = i;
 				msg[bidx0] = flip_bit(msg[bidx0], (idx0 % BITS_BYTE) + 1);
 			}
-			if (pow1 >= base_pow) {
+			if (pow1 >= base_pow1) {
 				int idx1 = ubidx * 2 + 1;
 				int bidx1 = i;
 				msg[bidx1] = flip_bit(msg[bidx1], (idx1 % BITS_BYTE) + 1);
