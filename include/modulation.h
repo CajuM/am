@@ -20,4 +20,7 @@ typedef struct {
 void * initAmo(double sampleRate, double amplitude, double frequency,
 		uintmax_t sampleSize);
 
+void * initAmm(double sampleRate, double amplitude, double frequency,
+		uintmax_t sampleSize);
+
 #endif

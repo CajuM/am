@@ -1,14 +1,18 @@
 project(am C)
 cmake_minimum_required(VERSION 3.2)
 
+find_package(PkgConfig)
+
 add_subdirectory(kiss_fft130)
 
 set(SRC
 	main.c
 	io/pulse.c
+	io/paudio.c
 	io/wav.c
 	encapsulation/enc1.c
 	modulation/am.c
+	modulation/amm.c
 	modulation/amo.c
 	modulation/fm.c
 	filtering/goertzel.c
@@ -16,19 +20,20 @@ set(SRC
 	rt.c
 )
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-
-find_package(LibPulseSimple REQUIRED)
+pkg_check_modules(PULSEAUDIO REQUIRED libpulse-simple)
+pkg_check_modules(PORTAUDIO REQUIRED portaudio-2.0)
 
 include_directories(
 	./kiss_fft130
 	./kiss_fft130/tools
 	./include
 	${PULSEAUDIO_INCLUDE_DIRS}
+	${PORTAUDIO_INCLUDE_DIRS}
 )
 
 link_libraries(
 	${PULSEAUDIO_LIBRARIES}
+	${PORTAUDIO_LIBRARIES}
 	pthread
 	m
 	kiss_fft

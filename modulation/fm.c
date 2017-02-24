@@ -33,20 +33,25 @@ uint8_t * fmDemodulate(void * fmv, int32_t *sbf, uintmax_t len) {
 int32_t * fmModulate(void * fmv, uint8_t * data, uintmax_t len) {
 	Fm * fm = fmv;
 	Modulation * mod = fmv;
-	uintmax_t suma;
+	uintmax_t suma = 0;
 	int * vbuf = malloc(sizeof(int) * len * U_BYTE * mod->sampleSize);
 	for (uintmax_t i = 0; i < len; i++)
 		for (uintmax_t j = 0; j < U_BYTE; j++) {
 			int bit = get_bit(data[i], j + 1);
+			suma += bit;
 			for (uintmax_t k = 0; k < mod->sampleSize; k++) {
-				suma += bit;
 				uintmax_t index = i * U_BYTE * mod->sampleSize
 						+ j * mod->sampleSize + k;
-				vbuf[index] = mod->amplitude
-						* sin(
-								(mod->pulsation * index
-										+ fm->pulsationDelta * suma)
-										/ mod->sampleRate);
+				if (bit == 0)
+					vbuf[index] = mod->amplitude * sin(mod->pulsation * index / mod->sampleRate);
+				else
+					vbuf[index] = mod->amplitude * sin((mod->pulsation + fm->pulsationDelta) * index / mod->sampleRate);
+				/*vbuf[index] = mod->amplitude * sin(
+					(
+						mod->pulsation * index +
+						fm->pulsationDelta * suma
+					) / mod->sampleRate
+				);*/
 			}
 		}
 	return vbuf;

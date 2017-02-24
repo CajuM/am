@@ -53,9 +53,9 @@ pa_simple *get_pl(int sampleRate) {
 void * paRead(void * iov, uintmax_t len) {
 	Pulse * pulse = iov;
 	int err;
-	void * buf = malloc(len);
+	void * buf = malloc(len * sizeof(int32_t));
 
-	if (pa_simple_read(pulse->recorder, buf, len, &err) < 0)
+	if (pa_simple_read(pulse->recorder, buf, len * sizeof(int32_t), &err) < 0)
 		fprintf(stderr, "Error: %s\n", pa_strerror(err));
 
 	return buf;
@@ -64,7 +64,7 @@ void * paRead(void * iov, uintmax_t len) {
 void paWrite(void * iov, void * buf, uintmax_t len) {
 	Pulse * pulse = iov;
 	int err;
-	if (pa_simple_write(pulse->player, buf, len, &err))
+	if (pa_simple_write(pulse->player, buf, len * sizeof(int32_t), &err))
 		printf("error: %s\n", pa_strerror(err));
     if (pa_simple_drain(pulse->player, &err) < 0)
         fprintf(stderr, "Error: %s\n", pa_strerror(err));

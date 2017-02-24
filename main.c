@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 #include <sys/select.h>
 #include <getopt.h>
@@ -11,6 +12,7 @@
 #include "fm.h"
 #include "enc1.h"
 #include "pulse.h"
+#include "paudio.h"
 #include "encoding.h"
 #include "rt.h"
 #include "wav.h"
@@ -26,7 +28,10 @@ typedef struct {
 	Modulation * mod;
 	Encapsulation * enc;
 	enum {
-		ZERO, TEST, CHAT, GENWAV
+		ZERO,
+		TEST,
+		CHAT,
+		GENWAV,
 	} action;
 } Stack;
 
@@ -36,27 +41,45 @@ static Stack * getStack(int argc, char ** argv) {
 	int genwav = 0;
 	int test = 0;
 	int chat = 0;
-	static struct option long_options[] = { { "modulation", required_argument,
-			0, 'm' }, { "genwav", no_argument, 0, 'g' }, { "test", no_argument,
-			0, 't' }, { "chat", no_argument, 0, 'c' }, { 0, 0, 0, 0 } };
+	static struct option long_options[] = {
+		{ "help", no_argument, 0, 'h' },
+		{ "modulation", required_argument, 0, 'm' },
+		{ "genwav", no_argument, 0, 'g' },
+		{ "test", no_argument, 0, 't' },
+		{ "chat", no_argument, 0, 'c' },
+		{ 0, 0, 0, 0 }
+	};
 	int c;
 	int option_index = 0;
 	do {
-		c = getopt_long(argc, argv, "m:gtc", long_options, &option_index);
+		c = getopt_long(argc, argv, "m:gtch", long_options, &option_index);
 		switch (c) {
 		case 0:
 			break;
+		case 'h':
+			printf(
+				"Usage: %s\n"
+				"-m|--modulation AM|AMO|AMM|FM\n"
+				"-g|--genwav\n"
+				"-t|--test\n"
+				"-c|--chat\n"
+			,argv[0]);
+			return NULL;
 		case 'm':
 			if (strcmp(optarg, "AM") == 0) {
-				stack->mod = initAm(48000, INT_MAX, 21000, 2000, 24);
+				stack->mod = initAm(48000, INT_MAX, 22000, 2000, 250);
 				break;
 			}
 			if (strcmp(optarg, "FM") == 0) {
-				stack->mod = initFm(48000, INT_MAX, 10810, 10000, 24);
+				stack->mod = initFm(48000, INT_MAX, 22000, 2000, 250);
 				break;
 			}
 			if (strcmp(optarg, "AMO") == 0) {
-				stack->mod = initAmo(48000, INT_MAX, 20000, 24);
+				stack->mod = initAmo(48000, INT_MAX, 22000, 250);
+				break;
+			}
+			if (strcmp(optarg, "AMM") == 0) {
+				stack->mod = initAmm(48000, INT_MAX, 22000, 250);
 				break;
 			}
 			fprintf(stderr, "Error: Invalid modulation\n");
@@ -74,7 +97,6 @@ static Stack * getStack(int argc, char ** argv) {
 			break;
 		default:
 			return NULL;
-			break;
 		}
 	} while (c != -1);
 	if (stack->action == ZERO) {
@@ -83,7 +105,8 @@ static Stack * getStack(int argc, char ** argv) {
 	}
 
 	if (stack->action == CHAT)
-		stack->io = initPulse(48000);
+		stack->io = initPortAudio(48000);
+//		stack->io = initPulse(48000);
 
 	if (stack->action == GENWAV)
 		stack->io = initWav("am.wav", 48000);
@@ -104,13 +127,18 @@ int match(uint8_t * base, uint8_t * test, uintmax_t len) {
 static void * listen(void * vstack) {
 	Stack * stack = vstack;
 	uintmax_t signalLen = stack->mod->oSize(stack->mod, stack->enc->frameSize);
-	int32_t * fbuf = calloc(signalLen, sizeof(int32_t));
+	uintmax_t fbufSize = (signalLen + stack->mod->sampleSize);
+	int32_t * fbuf = calloc(fbufSize, sizeof(int32_t));
 	while (1) {
 		int32_t * sample = stack->io->read(stack->io,
+				stack->mod->sampleSize);
+		mmpush(fbuf, fbufSize * sizeof(int32_t), sample,
 				stack->mod->sampleSize * sizeof(int32_t));
-		mmpush(fbuf, sizeof(int32_t) * signalLen, sample,
-				stack->mod->sampleSize * sizeof(int32_t));
-		Frame frm = stack->mod->demodulate(stack->mod, fbuf, signalLen);
+		free(sample);
+
+		for (uintmax_t ii = 0; ii < 4; ii++) {
+		uintmax_t fbufShift = (ii * stack->mod->sampleSize) / 4;
+		Frame frm = stack->mod->demodulate(stack->mod, fbuf + fbufShift, signalLen);
 
 		if (match(ping_frm, frm, stack->enc->frameSize)) {
 			for (uintmax_t i = 0; i < stack->enc->frameSize; i++) {
@@ -131,7 +159,7 @@ static void * listen(void * vstack) {
 			free(data);
 		}
 		free(frm);
-		free(sample);
+		}
 	}
 }
 
@@ -155,7 +183,7 @@ static void * send(void * vstack) {
 		 strlen(PING_STR));*/
 		int32_t * signal = stack->mod->modulate(stack->mod, ping_frm,
 				stack->enc->frameSize);
-		stack->io->write(stack->io, signal, signalLen * sizeof(int32_t));
+		stack->io->write(stack->io, signal, signalLen);
 		free(signal);
 		sent += 1;
 		//free(frm);
@@ -215,11 +243,11 @@ int main(int argc, char ** argv) {
 	Stack * stack = getStack(argc, argv);
 	int ret = 0;
 
+	if (stack == NULL)
+		return 255;
+
 	ping_frm = stack->enc->encapsulate(stack->enc, PING_STR,
 			strlen(PING_STR) + 1);
-
-	if (stack == NULL)
-		ret = 1;
 
 	if (stack->action == TEST)
 		ret = test(stack);
