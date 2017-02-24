@@ -7,7 +7,6 @@ add_subdirectory(kiss_fft130)
 
 set(SRC
 	main.c
-	io/pulse.c
 	io/paudio.c
 	io/wav.c
 	encapsulation/enc1.c

@@ -11,7 +11,6 @@
 #include "am.h"
 #include "fm.h"
 #include "enc1.h"
-#include "pulse.h"
 #include "paudio.h"
 #include "encoding.h"
 #include "rt.h"
@@ -106,7 +105,6 @@ static Stack * getStack(int argc, char ** argv) {
 
 	if (stack->action == CHAT)
 		stack->io = initPortAudio(48000);
-//		stack->io = initPulse(48000);
 
 	if (stack->action == GENWAV)
 		stack->io = initWav("am.wav", 48000);

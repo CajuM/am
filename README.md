@@ -14,4 +14,4 @@ parameters
 prerequisites
 -------------
 
-In order to compile the program you will need the pulseaduio development files and cmake.
+In order to compile the program you will need the PortAudio development files and cmake.
