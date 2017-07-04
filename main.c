@@ -34,6 +34,19 @@ typedef struct {
 	} action;
 } Stack;
 
+void usage(char * prog_name) {
+	printf(
+		"Usage: %s\n"
+		"-m|--modulation AM|AMO|AMM|FM default AMM, as it's the only one that cant't be heared if used with high frequencies\n"
+		"-g|--genwav generates a wav file containing a frame, for testing purposes\n"
+		"-t|--test outputs a frame into a buffer and attempts to read it\n"
+		"-c|--chat sends a frame in a while loop over the speaker and listens for it on the microphone\n"
+		"--frequency <float> the base frequency for the chosen modulation shceme default 22000\n"
+		"--amplitude <float> the amplitude of the signal between 0 and 1 default 1\n"
+		"-h|--help you're reading it\n"
+	,prog_name);
+}
+
 static Stack * getStack(int argc, char ** argv) {
 	Stack * stack = malloc(sizeof(Stack));
 	stack->enc = initEnc1();
@@ -46,39 +59,60 @@ static Stack * getStack(int argc, char ** argv) {
 		{ "genwav", no_argument, 0, 'g' },
 		{ "test", no_argument, 0, 't' },
 		{ "chat", no_argument, 0, 'c' },
+		{ "frequency", required_argument, 0, 0 },
+		{ "amplitude", required_argument, 0, 0 },
 		{ 0, 0, 0, 0 }
 	};
 	int c;
 	int option_index = 0;
+	double frequency = 22000;
+	double amplitude = 1;
+
+	enum {
+		AM,
+		AMO,
+		AMM,
+		FM
+	} selected_modulation = AMM;
 	do {
 		c = getopt_long(argc, argv, "m:gtch", long_options, &option_index);
 		switch (c) {
 		case 0:
+			if (option_index == 5) {
+				if (sscanf(optarg, "%lf", &frequency) != 1) {
+					fprintf(stderr, "Frequency requires as the only argument a real number\n");
+					return NULL;
+				}
+			}
+			if (option_index == 6) {
+				if (sscanf(optarg, "%lf", &amplitude) != 1) {
+					fprintf(stderr, "Frequency requires as the only argument a real number\n");
+					return NULL;
+				}
+				if (amplitude <= 0.0 || amplitude >= 1.0) {
+					fprintf(stderr, "The amplitude must be between 0 and 1\n");
+					return NULL;
+				}
+			}
 			break;
 		case 'h':
-			printf(
-				"Usage: %s\n"
-				"-m|--modulation AM|AMO|AMM|FM\n"
-				"-g|--genwav\n"
-				"-t|--test\n"
-				"-c|--chat\n"
-			,argv[0]);
+			usage(argv[0]);
 			return NULL;
 		case 'm':
 			if (strcmp(optarg, "AM") == 0) {
-				stack->mod = initAm(48000, INT_MAX, 22000, 2000, 250);
+				selected_modulation = AM;
 				break;
 			}
 			if (strcmp(optarg, "FM") == 0) {
-				stack->mod = initFm(48000, INT_MAX, 22000, 2000, 250);
+				selected_modulation = FM;
 				break;
 			}
 			if (strcmp(optarg, "AMO") == 0) {
-				stack->mod = initAmo(48000, INT_MAX, 22000, 250);
+				selected_modulation = AMO;
 				break;
 			}
 			if (strcmp(optarg, "AMM") == 0) {
-				stack->mod = initAmm(48000, INT_MAX, 22000, 250);
+				selected_modulation = AMM;
 				break;
 			}
 			fprintf(stderr, "Error: Invalid modulation\n");
@@ -95,12 +129,29 @@ static Stack * getStack(int argc, char ** argv) {
 		case -1:
 			break;
 		default:
+			usage(argv[0]);
 			return NULL;
 		}
 	} while (c != -1);
 	if (stack->action == ZERO) {
 		fprintf(stderr, "Error: You must suply an action\n");
+		usage(argv[0]);
 		return NULL;
+	}
+
+	switch (selected_modulation) {
+		case AMM:
+			stack->mod = initAmm(48000, amplitude * INT_MAX, frequency, 250);
+			break;
+		case AMO:
+			stack->mod = initAmo(48000, amplitude * INT_MAX, frequency, 250);
+			break;
+		case AM:
+			stack->mod = initAm(48000, amplitude * INT_MAX, frequency, 2000, 250);
+			break;
+		case FM:
+			stack->mod = initFm(48000, amplitude * INT_MAX, frequency, 2000, 250);
+			break;
 	}
 
 	if (stack->action == CHAT)

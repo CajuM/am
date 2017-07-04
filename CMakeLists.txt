@@ -19,19 +19,16 @@ set(SRC
 	rt.c
 )
 
-pkg_check_modules(PULSEAUDIO REQUIRED libpulse-simple)
 pkg_check_modules(PORTAUDIO REQUIRED portaudio-2.0)
 
 include_directories(
 	./kiss_fft130
 	./kiss_fft130/tools
 	./include
-	${PULSEAUDIO_INCLUDE_DIRS}
 	${PORTAUDIO_INCLUDE_DIRS}
 )
 
 link_libraries(
-	${PULSEAUDIO_LIBRARIES}
 	${PORTAUDIO_LIBRARIES}
 	pthread
 	m
